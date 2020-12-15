@@ -1,17 +1,18 @@
-import warnings
-from os import getenv
 import sys
-from os.path import dirname, abspath
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+from os import getenv
+from os.path import abspath, dirname
 
-sys.path.append(dirname(dirname(abspath(__file__))))
-
+import cv2
 import torch
 from deep_sort import build_tracker
 from detector import build_detector
-import cv2
-from utils.draw import compute_color_for_labels
-from concurrent.futures import ThreadPoolExecutor
 from redis import Redis
+from utils.draw import compute_color_for_labels
+
+sys.path.append(dirname(dirname(abspath(__file__))))
+
 
 redis_cache = Redis('127.0.0.1')
 
@@ -43,7 +44,8 @@ class RealTimeTracking(object):
 
         self.vdo = cv2.VideoCapture(self.args.input)
         self.status, self.frame = None, None
-        self.total_frames = int(cv2.VideoCapture.get(self.vdo, cv2.CAP_PROP_FRAME_COUNT))
+        self.total_frames = int(cv2.VideoCapture.get(
+            self.vdo, cv2.CAP_PROP_FRAME_COUNT))
         self.im_width = int(self.vdo.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.im_height = int(self.vdo.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -69,7 +71,6 @@ class RealTimeTracking(object):
                 pass
         print('streaming stopped ...')
 
-
     def detection(self, frame):
         im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # do detection
@@ -79,7 +80,8 @@ class RealTimeTracking(object):
             mask = cls_ids == 0
 
             bbox_xywh = bbox_xywh[mask]
-            bbox_xywh[:, 3:] *= 1.2  # bbox dilation just in case bbox too small
+            # bbox dilation just in case bbox too small
+            bbox_xywh[:, 3:] *= 1.2
             cls_conf = cls_conf[mask]
 
             # do tracking
@@ -103,6 +105,8 @@ class RealTimeTracking(object):
             label = '{}{:d}'.format("", identity)
             t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
             cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
-            cv2.rectangle(img, (x1, y1), (x1 + t_size[0] + 3, y1 + t_size[1] + 4), color, -1)
-            cv2.putText(img, label, (x1, y1 + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
+            cv2.rectangle(
+                img, (x1, y1), (x1 + t_size[0] + 3, y1 + t_size[1] + 4), color, -1)
+            cv2.putText(
+                img, label, (x1, y1 + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
         return img

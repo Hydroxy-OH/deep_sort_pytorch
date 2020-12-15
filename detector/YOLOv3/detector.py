@@ -1,11 +1,14 @@
-import torch
 import logging
+
 import numpy as np
+
 import cv2
+import torch
 
 from .darknet import Darknet
-from .yolo_utils import get_all_boxes, nms, post_process, xywh_to_xyxy, xyxy_to_xywh
 from .nms import boxes_nms
+from .yolo_utils import (get_all_boxes, nms, post_process, xywh_to_xyxy,
+                         xyxy_to_xywh)
 
 
 class YOLOv3(object):
@@ -46,8 +49,10 @@ class YOLOv3(object):
                                   use_cuda=self.use_cuda)  # batch size is 1
             # boxes = nms(boxes, self.nms_thresh)
 
-            boxes = post_process(boxes, self.net.num_classes, self.conf_thresh, self.nms_thresh)[0].cpu()
-            boxes = boxes[boxes[:, -2] > self.score_thresh, :]  # bbox xmin ymin xmax ymax
+            boxes = post_process(boxes, self.net.num_classes,
+                                 self.conf_thresh, self.nms_thresh)[0].cpu()
+            # bbox xmin ymin xmax ymax
+            boxes = boxes[boxes[:, -2] > self.score_thresh, :]
 
         if len(boxes) == 0:
             bbox = torch.FloatTensor([]).reshape([0, 4])
@@ -80,7 +85,8 @@ def demo():
     root = "./demo"
     resdir = os.path.join(root, "results")
     os.makedirs(resdir, exist_ok=True)
-    files = [os.path.join(root, file) for file in os.listdir(root) if file.endswith('.jpg')]
+    files = [os.path.join(root, file)
+             for file in os.listdir(root) if file.endswith('.jpg')]
     files.sort()
     for filename in files:
         img = cv2.imread(filename)
@@ -88,9 +94,11 @@ def demo():
         bbox, cls_conf, cls_ids = yolo(img)
 
         if bbox is not None:
-            img = draw_boxes(img, bbox, cls_ids, cls_conf, class_name_map=yolo.class_names)
+            img = draw_boxes(img, bbox, cls_ids, cls_conf,
+                             class_name_map=yolo.class_names)
         # save results
-        cv2.imwrite(os.path.join(resdir, os.path.basename(filename)), img[:, :, (2, 1, 0)])
+        cv2.imwrite(os.path.join(resdir, os.path.basename(
+            filename)), img[:, :, (2, 1, 0)])
         # imshow
         # cv2.namedWindow("yolo", cv2.WINDOW_NORMAL)
         # cv2.resizeWindow("yolo", 600,600)

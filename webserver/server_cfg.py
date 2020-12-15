@@ -1,13 +1,13 @@
 """"""
 import sys
-from os.path import dirname, abspath, isfile
-
-sys.path.append(dirname(dirname(abspath(__file__))))
+from os import getenv
+from os.path import abspath, dirname, isfile, join
 
 from dotenv import load_dotenv
 from utils.asserts import assert_in_env
-from os import getenv
-from os.path import join
+
+sys.path.append(dirname(dirname(abspath(__file__))))
+
 
 load_dotenv('.env')
 # Configure deep sort info
@@ -24,8 +24,10 @@ deep_sort_dict = {'DEEPSORT': deep_sort_info}
 # Configure yolov3 info
 
 yolov3_info = dict(CFG=join(getenv('project_root'), getenv('yolov3_cfg')),
-                   WEIGHT=join(getenv('project_root'), getenv('yolov3_weight')),
-                   CLASS_NAMES=join(getenv('project_root'), getenv('yolov3_class_names')),
+                   WEIGHT=join(getenv('project_root'),
+                               getenv('yolov3_weight')),
+                   CLASS_NAMES=join(getenv('project_root'),
+                                    getenv('yolov3_class_names')),
                    SCORE_THRESH=0.5,
                    NMS_THRESH=0.4
                    )
@@ -34,8 +36,10 @@ yolov3_dict = {'YOLOV3': yolov3_info}
 # Configure yolov3-tiny info
 
 yolov3_tiny_info = dict(CFG=join(getenv('project_root'), getenv('yolov3_tiny_cfg')),
-                        WEIGHT=join(getenv('project_root'), getenv('yolov3_tiny_weight')),
-                        CLASS_NAMES=join(getenv('project_root'), getenv('yolov3_class_names')),
+                        WEIGHT=join(getenv('project_root'),
+                                    getenv('yolov3_tiny_weight')),
+                        CLASS_NAMES=join(getenv('project_root'),
+                                         getenv('yolov3_class_names')),
                         SCORE_THRESH=0.5,
                         NMS_THRESH=0.4
                         )
@@ -59,4 +63,5 @@ if assert_in_env(check_list):
         assert isfile(yolov3_tiny_info['CLASS_NAMES'])
         model = yolov3_tiny_dict.copy()
     else:
-        raise ValueError("Value '{}' for model_type is not valid".format(getenv('model_type')))
+        raise ValueError(
+            "Value '{}' for model_type is not valid".format(getenv('model_type')))

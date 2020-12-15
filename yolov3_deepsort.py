@@ -1,17 +1,18 @@
-import os
-import cv2
-import time
 import argparse
-import torch
+import os
+import time
 import warnings
+
 import numpy as np
 
-from detector import build_detector
+import cv2
+import torch
 from deep_sort import build_tracker
+from detector import build_detector
 from utils.draw import draw_boxes
-from utils.parser import get_config
-from utils.log import get_logger
 from utils.io import write_results
+from utils.log import get_logger
+from utils.parser import get_config
 
 
 class VideoTracker(object):
@@ -23,7 +24,8 @@ class VideoTracker(object):
 
         use_cuda = args.use_cuda and torch.cuda.is_available()
         if not use_cuda:
-            warnings.warn("Running in cpu mode which maybe very slow!", UserWarning)
+            warnings.warn(
+                "Running in cpu mode which maybe very slow!", UserWarning)
 
         if args.display:
             cv2.namedWindow("test", cv2.WINDOW_NORMAL)
@@ -56,12 +58,15 @@ class VideoTracker(object):
             os.makedirs(self.args.save_path, exist_ok=True)
 
             # path of saved video and results
-            self.save_video_path = os.path.join(self.args.save_path, "results.avi")
-            self.save_results_path = os.path.join(self.args.save_path, "results.txt")
+            self.save_video_path = os.path.join(
+                self.args.save_path, "results.avi")
+            self.save_results_path = os.path.join(
+                self.args.save_path, "results.txt")
 
             # create video writer
             fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-            self.writer = cv2.VideoWriter(self.save_video_path, fourcc, 20, (self.im_width, self.im_height))
+            self.writer = cv2.VideoWriter(
+                self.save_video_path, fourcc, 20, (self.im_width, self.im_height))
 
             # logging
             self.logger.info("Save results to {}".format(self.args.save_path))
@@ -123,23 +128,27 @@ class VideoTracker(object):
             write_results(self.save_results_path, results, 'mot')
 
             # logging
-            self.logger.info("time: {:.03f}s, fps: {:.03f}, detection numbers: {}, tracking numbers: {}" \
+            self.logger.info("time: {:.03f}s, fps: {:.03f}, detection numbers: {}, tracking numbers: {}"
                              .format(end - start, 1 / (end - start), bbox_xywh.shape[0], len(outputs)))
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("VIDEO_PATH", type=str)
-    parser.add_argument("--config_detection", type=str, default="./configs/yolov3.yaml")
-    parser.add_argument("--config_deepsort", type=str, default="./configs/deep_sort.yaml")
+    parser.add_argument("--config_detection", type=str,
+                        default="./configs/yolov3.yaml")
+    parser.add_argument("--config_deepsort", type=str,
+                        default="./configs/deep_sort.yaml")
     # parser.add_argument("--ignore_display", dest="display", action="store_false", default=True)
     parser.add_argument("--display", action="store_true")
     parser.add_argument("--frame_interval", type=int, default=1)
     parser.add_argument("--display_width", type=int, default=800)
     parser.add_argument("--display_height", type=int, default=600)
     parser.add_argument("--save_path", type=str, default="./output/")
-    parser.add_argument("--cpu", dest="use_cuda", action="store_false", default=True)
-    parser.add_argument("--camera", action="store", dest="cam", type=int, default="-1")
+    parser.add_argument("--cpu", dest="use_cuda",
+                        action="store_false", default=True)
+    parser.add_argument("--camera", action="store",
+                        dest="cam", type=int, default="-1")
     return parser.parse_args()
 
 

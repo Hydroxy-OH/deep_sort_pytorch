@@ -6,18 +6,18 @@
     3- Use tmpfs (Insert RAM as a virtual disk and store model state): https://pypi.org/project/memory-tempfile/
 
 """
-from os.path import join
-from os import getenv, environ
-from dotenv import load_dotenv
 import argparse
+from os import environ, getenv
+from os.path import join
 from threading import Thread
 
-from redis import Redis
-from flask import Response, Flask, jsonify, request, abort
+from flask import Flask, Response, abort, jsonify, request
 
-from rtsp_threaded_tracker import RealTimeTracking
-from server_cfg import model, deep_sort_dict
 from config.config import DevelopmentConfig
+from dotenv import load_dotenv
+from redis import Redis
+from rtsp_threaded_tracker import RealTimeTracking
+from server_cfg import deep_sort_dict, model
 from utils.parser import get_config
 
 redis_cache = Redis('127.0.0.1')
@@ -125,7 +125,8 @@ def process_manager():
     # data = request.args
     data = request.args
     status = data['run']
-    status = int(status) if status.isnumeric() else abort(400, {'message': f"bad argument for run {data['run']}"})
+    status = int(status) if status.isnumeric() else abort(
+        400, {'message': f"bad argument for run {data['run']}"})
     if status == 1:
         # if pedestrian tracking is not running, start it off!
         try:

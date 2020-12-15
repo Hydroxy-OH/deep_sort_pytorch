@@ -1,4 +1,5 @@
 import torch
+
 from .yolo_utils import convert2cpu
 
 
@@ -36,7 +37,7 @@ def parse_cfg(cfgfile):
 
 
 def print_cfg(blocks):
-    print('layer     filters    size              input                output');
+    print('layer     filters    size              input                output')
     prev_width = 416
     prev_height = 416
     prev_filters = 3
@@ -59,8 +60,8 @@ def print_cfg(blocks):
             width = (prev_width + 2 * pad - kernel_size) // stride + 1
             height = (prev_height + 2 * pad - kernel_size) // stride + 1
             print('%5d %-6s %4d  %d x %d / %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
-            ind, 'conv', filters, kernel_size, kernel_size, stride, prev_width, prev_height, prev_filters, width,
-            height, filters))
+                ind, 'conv', filters, kernel_size, kernel_size, stride, prev_width, prev_height, prev_filters, width,
+                height, filters))
             prev_width = width
             prev_height = height
             prev_filters = filters
@@ -73,7 +74,7 @@ def print_cfg(blocks):
             width = prev_width // stride
             height = prev_height // stride
             print('%5d %-6s       %d x %d / %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
-            ind, 'max', pool_size, pool_size, stride, prev_width, prev_height, prev_filters, width, height, filters))
+                ind, 'max', pool_size, pool_size, stride, prev_width, prev_height, prev_filters, width, height, filters))
             prev_width = width
             prev_height = height
             prev_filters = filters
@@ -84,7 +85,7 @@ def print_cfg(blocks):
             width = 1
             height = 1
             print('%5d %-6s                   %3d x %3d x%4d   ->  %3d' % (
-            ind, 'avg', prev_width, prev_height, prev_filters, prev_filters))
+                ind, 'avg', prev_width, prev_height, prev_filters, prev_filters))
             prev_width = width
             prev_height = height
             prev_filters = filters
@@ -92,12 +93,14 @@ def print_cfg(blocks):
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
         elif block['type'] == 'softmax':
-            print('%5d %-6s                                    ->  %3d' % (ind, 'softmax', prev_filters))
+            print('%5d %-6s                                    ->  %3d' %
+                  (ind, 'softmax', prev_filters))
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
         elif block['type'] == 'cost':
-            print('%5d %-6s                                     ->  %3d' % (ind, 'cost', prev_filters))
+            print('%5d %-6s                                     ->  %3d' %
+                  (ind, 'cost', prev_filters))
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
@@ -107,7 +110,7 @@ def print_cfg(blocks):
             width = prev_width // stride
             height = prev_height // stride
             print('%5d %-6s             / %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
-            ind, 'reorg', stride, prev_width, prev_height, prev_filters, width, height, filters))
+                ind, 'reorg', stride, prev_width, prev_height, prev_filters, width, height, filters))
             prev_width = width
             prev_height = height
             prev_filters = filters
@@ -120,7 +123,7 @@ def print_cfg(blocks):
             width = prev_width * stride
             height = prev_height * stride
             print('%5d %-6s           * %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
-            ind, 'upsample', stride, prev_width, prev_height, prev_filters, width, height, filters))
+                ind, 'upsample', stride, prev_width, prev_height, prev_filters, width, height, filters))
             prev_width = width
             prev_height = height
             prev_filters = filters
@@ -162,7 +165,8 @@ def print_cfg(blocks):
             out_filters.append(prev_filters)
         elif block['type'] == 'connected':
             filters = int(block['output'])
-            print('%5d %-6s                            %d  ->  %3d' % (ind, 'connected', prev_filters, filters))
+            print('%5d %-6s                            %d  ->  %3d' %
+                  (ind, 'connected', prev_filters, filters))
             prev_filters = filters
             out_widths.append(1)
             out_heights.append(1)
@@ -176,9 +180,11 @@ def load_conv(buf, start, conv_model):
     num_b = conv_model.bias.numel()
     # print("start: {}, num_w: {}, num_b: {}".format(start, num_w, num_b))
     # by ysyun, use .view_as()
-    conv_model.bias.data.copy_(torch.from_numpy(buf[start:start + num_b]).view_as(conv_model.bias.data));
+    conv_model.bias.data.copy_(torch.from_numpy(
+        buf[start:start + num_b]).view_as(conv_model.bias.data))
     start = start + num_b
-    conv_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w]).view_as(conv_model.weight.data));
+    conv_model.weight.data.copy_(torch.from_numpy(
+        buf[start:start + num_w]).view_as(conv_model.weight.data))
     start = start + num_w
     return start
 
@@ -195,16 +201,17 @@ def save_conv(fp, conv_model):
 def load_conv_bn(buf, start, conv_model, bn_model):
     num_w = conv_model.weight.numel()
     num_b = bn_model.bias.numel()
-    bn_model.bias.data.copy_(torch.from_numpy(buf[start:start + num_b]));
+    bn_model.bias.data.copy_(torch.from_numpy(buf[start:start + num_b]))
     start = start + num_b
-    bn_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_b]));
+    bn_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_b]))
     start = start + num_b
-    bn_model.running_mean.copy_(torch.from_numpy(buf[start:start + num_b]));
+    bn_model.running_mean.copy_(torch.from_numpy(buf[start:start + num_b]))
     start = start + num_b
-    bn_model.running_var.copy_(torch.from_numpy(buf[start:start + num_b]));
+    bn_model.running_var.copy_(torch.from_numpy(buf[start:start + num_b]))
     start = start + num_b
     # conv_model.weight.data.copy_(torch.from_numpy(buf[start:start+num_w])); start = start + num_w
-    conv_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w]).view_as(conv_model.weight.data));
+    conv_model.weight.data.copy_(torch.from_numpy(
+        buf[start:start + num_w]).view_as(conv_model.weight.data))
     start = start + num_w
     return start
 
@@ -227,9 +234,9 @@ def save_conv_bn(fp, conv_model, bn_model):
 def load_fc(buf, start, fc_model):
     num_w = fc_model.weight.numel()
     num_b = fc_model.bias.numel()
-    fc_model.bias.data.copy_(torch.from_numpy(buf[start:start + num_b]));
+    fc_model.bias.data.copy_(torch.from_numpy(buf[start:start + num_b]))
     start = start + num_b
-    fc_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w]));
+    fc_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w]))
     start = start + num_w
     return start
 

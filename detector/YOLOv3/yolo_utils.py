@@ -1,11 +1,15 @@
-import os
-import time
+import imghdr  # get_image_size
 import math
-import torch
+import os
+import struct  # get_image_size
+import time
+
 import numpy as np
 from PIL import Image, ImageDraw
-import struct  # get_image_size
-import imghdr  # get_image_size
+
+import torch
+
+from .nms import boxes_nms
 
 
 def sigmoid(x):
@@ -78,9 +82,6 @@ def multi_bbox_ious(boxes1, boxes2, x1y1x2y2=True):
     return carea / uarea
 
 
-from .nms import boxes_nms
-
-
 def post_process(boxes, num_classes, conf_thresh=0.01, nms_thresh=0.45, obj_thresh=0.3):
     batch_size = boxes.size(0)
 
@@ -89,10 +90,12 @@ def post_process(boxes, num_classes, conf_thresh=0.01, nms_thresh=0.45, obj_thre
     for batch_id in range(batch_size):
         processed_boxes = []
         for cls_id in range(num_classes):
-            mask = (boxes[batch_id, :, -1] == cls_id) * (boxes[batch_id, :, 4] > obj_thresh)
+            mask = (boxes[batch_id, :, -1] == cls_id) * \
+                (boxes[batch_id, :, 4] > obj_thresh)
             masked_boxes = boxes[batch_id, mask]
 
-            keep = boxes_nms(masked_boxes[:, :4], masked_boxes[:, 5], nms_thresh)
+            keep = boxes_nms(masked_boxes[:, :4],
+                             masked_boxes[:, 5], nms_thresh)
 
             nmsed_boxes = masked_boxes[keep, :]
 
@@ -165,8 +168,9 @@ def get_all_boxes(output, conf_thresh, num_classes, only_objectness=1, validatio
 
     all_boxes = []
     for i in range(len(output)):
-        pred, anchors, num_anchors = output[i]['x'].data, output[i]['a'], output[i]['n'].item()
-        boxes = get_region_boxes(pred, conf_thresh, num_classes, anchors, num_anchors, \
+        pred, anchors, num_anchors = output[i]['x'].data, output[i]['a'], output[i]['n'].item(
+        )
+        boxes = get_region_boxes(pred, conf_thresh, num_classes, anchors, num_anchors,
                                  only_objectness=only_objectness, validation=validation, use_cuda=use_cuda)
 
         all_boxes.append(boxes)
@@ -190,7 +194,8 @@ def get_region_boxes(output, obj_thresh, num_classes, anchors, num_anchors, only
     output = output.view(batch * num_anchors, 5 + num_classes, h * w).transpose(0, 1).contiguous().view(5 + num_classes,
                                                                                                         cls_anchor_dim)
 
-    grid_x = torch.linspace(0, w - 1, w).repeat(batch * num_anchors, h, 1).view(cls_anchor_dim).to(device)
+    grid_x = torch.linspace(0, w - 1, w).repeat(batch *
+                                                num_anchors, h, 1).view(cls_anchor_dim).to(device)
     grid_y = torch.linspace(0, h - 1, h).repeat(w, 1).t().repeat(batch * num_anchors, 1, 1).view(cls_anchor_dim).to(
         device)
     ix = torch.LongTensor(range(0, 2)).to(device)
@@ -199,12 +204,15 @@ def get_region_boxes(output, obj_thresh, num_classes, anchors, num_anchors, only
     anchor_h = anchors.view(num_anchors, anchor_step).index_select(1, ix[1]).repeat(1, batch, h * w).view(
         cls_anchor_dim)
 
-    xs, ys = torch.sigmoid(output[0]) + grid_x, torch.sigmoid(output[1]) + grid_y
-    ws, hs = torch.exp(output[2]) * anchor_w.detach(), torch.exp(output[3]) * anchor_h.detach()
+    xs, ys = torch.sigmoid(output[0]) + \
+        grid_x, torch.sigmoid(output[1]) + grid_y
+    ws, hs = torch.exp(
+        output[2]) * anchor_w.detach(), torch.exp(output[3]) * anchor_h.detach()
     det_confs = torch.sigmoid(output[4])
 
     # by ysyun, dim=1 means input is 2D or even dimension else dim=0
-    cls_confs = torch.nn.Softmax(dim=1)(output[5:5 + num_classes].transpose(0, 1)).detach()
+    cls_confs = torch.nn.Softmax(dim=1)(
+        output[5:5 + num_classes].transpose(0, 1)).detach()
     cls_max_confs, cls_max_ids = torch.max(cls_confs, 1)
     cls_max_confs = cls_max_confs.view(-1)
     cls_max_ids = cls_max_ids.view(-1).float()
@@ -350,7 +358,8 @@ def get_region_boxes(output, obj_thresh, num_classes, anchors, num_anchors, only
 
 def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     import cv2
-    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]])
+    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [
+                               0, 1, 0], [1, 1, 0], [1, 0, 0]])
 
     def get_color(c, x, max_val):
         ratio = float(x) / max_val * 5
@@ -384,7 +393,8 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
             blue = get_color(0, offset, classes)
             if color is None:
                 rgb = (red, green, blue)
-            img = cv2.putText(img, class_names[cls_id], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.2, rgb, 1)
+            img = cv2.putText(
+                img, class_names[cls_id], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.2, rgb, 1)
         img = cv2.rectangle(img, (x1, y1), (x2, y2), rgb, 1)
     if savename:
         print("save plot results to %s" % savename)
@@ -393,7 +403,8 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
 
 
 def plot_boxes(img, boxes, savename=None, class_names=None):
-    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]])
+    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [
+                               0, 1, 0], [1, 1, 0], [1, 0, 0]])
 
     def get_color(c, x, max_val):
         ratio = float(x) / max_val * 5
@@ -438,7 +449,8 @@ def read_truths(lab_path):
         return np.array([])
     if os.path.getsize(lab_path):
         truths = np.loadtxt(lab_path)
-        truths = truths.reshape(truths.size // 5, 5)  # to avoid single truth problem
+        # to avoid single truth problem
+        truths = truths.reshape(truths.size // 5, 5)
         return truths
     else:
         return np.array([])
@@ -450,7 +462,8 @@ def read_truths_args(lab_path, min_box_scale):
     for i in range(truths.shape[0]):
         if truths[i][3] < min_box_scale:
             continue
-        new_truths.append([truths[i][0], truths[i][1], truths[i][2], truths[i][3], truths[i][4]])
+        new_truths.append([truths[i][0], truths[i][1],
+                           truths[i][2], truths[i][3], truths[i][4]])
     return np.array(new_truths)
 
 
@@ -468,11 +481,13 @@ def image2torch(img):
         width = img.width
         height = img.height
         img = torch.ByteTensor(torch.ByteStorage.from_buffer(img.tobytes()))
-        img = img.view(height, width, 3).transpose(0, 1).transpose(0, 2).contiguous()
+        img = img.view(height, width, 3).transpose(
+            0, 1).transpose(0, 2).contiguous()
         img = img.view(1, 3, height, width)
         img = img.float().div(255.0)
     elif type(img) == np.ndarray:  # cv2 image
-        img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
+        img = torch.from_numpy(img.transpose(
+            2, 0, 1)).float().div(255.0).unsqueeze(0)
     else:
         print("unknown image type")
         exit(-1)
@@ -489,7 +504,8 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=True):
     t2 = time.time()
 
     out_boxes = model(img)
-    boxes = get_all_boxes(out_boxes, conf_thresh, model.num_classes, use_cuda=use_cuda)[0]
+    boxes = get_all_boxes(out_boxes, conf_thresh,
+                          model.num_classes, use_cuda=use_cuda)[0]
 
     t3 = time.time()
     boxes = nms(boxes, nms_thresh)

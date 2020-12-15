@@ -3,37 +3,41 @@ This module gets video in input and outputs the
 json file with coordination of bboxes in the video.
 
 """
-from os.path import basename, splitext, join, isfile, isdir, dirname
+import argparse
+import warnings
 from os import makedirs
+from os.path import basename, dirname, isdir, isfile, join, splitext
 
 from tqdm import tqdm
-import cv2
-import argparse
-import torch
 
-from detector import build_detector
+import cv2
+import torch
 from deep_sort import build_tracker
-from utils.tools import tik_tok, is_video
+from detector import build_detector
 from utils.draw import compute_color_for_labels
-from utils.parser import get_config
 from utils.json_logger import BboxToJsonLogger
-import warnings
+from utils.parser import get_config
+from utils.tools import is_video, tik_tok
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--VIDEO_PATH", type=str, default="./demo/ped.avi")
-    parser.add_argument("--config_detection", type=str, default="./configs/yolov3.yaml")
-    parser.add_argument("--config_deepsort", type=str, default="./configs/deep_sort.yaml")
+    parser.add_argument("--config_detection", type=str,
+                        default="./configs/yolov3.yaml")
+    parser.add_argument("--config_deepsort", type=str,
+                        default="./configs/deep_sort.yaml")
     parser.add_argument("--write-fps", type=int, default=20)
     parser.add_argument("--frame_interval", type=int, default=1)
     parser.add_argument("--save_path", type=str, default="./output")
-    parser.add_argument("--cpu", dest="use_cuda", action="store_false", default=True)
+    parser.add_argument("--cpu", dest="use_cuda",
+                        action="store_false", default=True)
     args = parser.parse_args()
 
     assert isfile(args.VIDEO_PATH), "Error: Video not found"
     assert is_video(args.VIDEO_PATH), "Error: Not Supported format"
-    if args.frame_interval < 1: args.frame_interval = 1
+    if args.frame_interval < 1:
+        args.frame_interval = 1
 
     return args
 
@@ -61,7 +65,8 @@ class VideoTracker(object):
 
     def __enter__(self):
         self.vdo.open(self.args.VIDEO_PATH)
-        self.total_frames = int(cv2.VideoCapture.get(self.vdo, cv2.CAP_PROP_FRAME_COUNT))
+        self.total_frames = int(cv2.VideoCapture.get(
+            self.vdo, cv2.CAP_PROP_FRAME_COUNT))
         self.im_width = int(self.vdo.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.im_height = int(self.vdo.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -106,7 +111,8 @@ class VideoTracker(object):
             mask = cls_ids == 0
 
             bbox_xywh = bbox_xywh[mask]
-            bbox_xywh[:, 3:] *= 1.2  # bbox dilation just in case bbox too small
+            # bbox dilation just in case bbox too small
+            bbox_xywh[:, 3:] *= 1.2
             cls_conf = cls_conf[mask]
 
             # do tracking
@@ -114,7 +120,8 @@ class VideoTracker(object):
 
             # draw boxes for visualization
             if len(outputs) > 0:
-                frame = self.draw_boxes(img=frame, frame_id=frame_id, output=outputs)
+                frame = self.draw_boxes(
+                    img=frame, frame_id=frame_id, output=outputs)
 
     def draw_boxes(self, img, frame_id, output, offset=(0, 0)):
         for i, box in enumerate(output):
@@ -131,17 +138,21 @@ class VideoTracker(object):
             y2 += offset[1]
 
             # box text and bar
-            self.logger.add_label_to_bbox(frame_id=frame_id, bbox_id=identity, category='pedestrian', confidence=0.9)
+            self.logger.add_label_to_bbox(
+                frame_id=frame_id, bbox_id=identity, category='pedestrian', confidence=0.9)
             color = compute_color_for_labels(identity)
             label = '{}{:d}'.format("", identity)
             t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
             cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
-            cv2.rectangle(img, (x1, y1), (x1 + t_size[0] + 3, y1 + t_size[1] + 4), color, -1)
-            cv2.putText(img, label, (x1, y1 + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
+            cv2.rectangle(
+                img, (x1, y1), (x1 + t_size[0] + 3, y1 + t_size[1] + 4), color, -1)
+            cv2.putText(
+                img, label, (x1, y1 + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
         return img
 
     def save_frame(self, frame) -> None:
-        if frame is not None: self.writer.write(frame)
+        if frame is not None:
+            self.writer.write(frame)
 
 
 if __name__ == "__main__":
@@ -152,4 +163,3 @@ if __name__ == "__main__":
 
     with VideoTracker(cfg, args) as vdo_trk:
         vdo_trk.run()
-
